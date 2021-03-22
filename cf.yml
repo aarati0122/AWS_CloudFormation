@@ -1,0 +1,130 @@
+Parameters:
+  AMI:
+    Type: String
+    Description: Custom AMI for web server
+    Default: ami-081bb417559035fe8
+  InstanceType:
+    Type: String
+    Description: Instance Type
+    Default: t2.micro
+  KeyName: 
+    Type: String
+    Description: Put ssh key
+Resources:
+
+  VPCNew:
+    Type: AWS::EC2::VPC
+    Properties: 
+      CidrBlock: '192.168.0.1/24'
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      InstanceTenancy: default
+      Tags:
+      - Key: Name
+        Value: New VPC CF
+
+  InternetGetA:
+    Type: AWS::EC2::InternetGateway
+    Properties: 
+      Tags:
+      - Key: Name
+        Value: My New IG CF
+  
+  AttachVpcGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: 
+        Ref: VPCNew
+      InternetGatewayId: 
+        Ref: InternetGetA
+  
+  mySubnetA:
+    Type: AWS::EC2::Subnet 
+    Properties:
+      VpcId: 
+        Ref: VPCNew
+      CidrBlock: '192.168.0.0/24'
+      AvailabilityZone: 
+        Fn::Select: 
+        - 0 
+        - Fn::GetAZs : ""
+        # - Fn::GetAZs: 'AWS::Region'
+      Tags:
+      - Key: Name
+        Value: mysunet table1
+
+  RouteTableA:
+    Type: AWS::EC2::RouteTable
+    Properties: 
+      VpcId:
+        Ref: VPCNew
+      Tags:
+      - Key: Name
+        Value: New RouteT Cf
+  
+  InternetRoutA:
+    Type: AWS::EC2::Route
+    DependsOn: InternetGetA
+    Properties: 
+      RouteTableId: 
+        Ref: RouteTableA
+      DestinationCidrBlock: '0.0.0.0/0'
+      GatewayId:
+        Ref: InternetGetA   
+
+
+  SubnetRTAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties: 
+      SubnetId:
+        Ref: mySubnetA
+      RouteTableId:
+        Ref: RouteTableA
+        
+  Ec2InstanceA:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: 
+        Ref: AMI
+      SubnetId:
+        Ref: mySubnetA
+      InstanceType: 
+        Ref: InstanceType
+      # SecurityGroupIds:
+      #   Ref: InstnceSecurityGroup
+      AvailabilityZone: ap-south-1a
+      Tags: 
+      - Key: Name
+        Value: MyCFOS
+      
+  
+  # MyEIp:
+  #   Type: AWS::EC2::EIP
+  #   Properties:
+  #     InstanceId:
+  #       Ref: Ec2InstanceA
+
+  # InstanceSecuritygroup:
+  #   Type: AWS::EC2::SecurityGroup
+  #   Properties:
+  #     GroupDescription: Allow http to client host 
+  #     VpcId: 
+  #       Ref: VPCNew
+  #     SecurityGroupIngress:
+  #     - IpProtocol: tcp
+  #       FromPort: 80
+  #       ToPort: 80
+  #       CidrIp: '0.0.0.0/0'
+  #     SecurityGroupEgress:
+  #     - IpProtocol: tcp 
+  #       FromPort: 80
+  #       ToPort: 80
+  #       CidrIp: '0.0.0.0/0'
+  #     Tags:
+  #     - Key: Name
+  #       Value: mySecurityGroup
+
+# Outputs:
+#   PublicIp:
+#     Value:
+#       GetAtt: Ec2InstanceA.PublicIp
